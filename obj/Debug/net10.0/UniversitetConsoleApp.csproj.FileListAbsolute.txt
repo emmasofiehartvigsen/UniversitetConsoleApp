@@ -12,3 +12,4 @@ C:\Users\NO-Etetlie\Documents\It og informasjonsstudier\IS110\UniversitetConsole
 C:\Users\NO-Etetlie\Documents\It og informasjonsstudier\IS110\UniversitetConsoleApp\obj\Debug\net10.0\UniversitetConsoleApp.pdb
 C:\Users\NO-Etetlie\Documents\It og informasjonsstudier\IS110\UniversitetConsoleApp\obj\Debug\net10.0\UniversitetConsoleApp.genruntimeconfig.cache
 C:\Users\NO-Etetlie\Documents\It og informasjonsstudier\IS110\UniversitetConsoleApp\obj\Debug\net10.0\ref\UniversitetConsoleApp.dll
+C:\Users\NO-Etetlie\Documents\It og informasjonsstudier\IS110\UniversitetConsoleApp\obj\Debug\net10.0\UniversitetConsoleApp.sourcelink.json
