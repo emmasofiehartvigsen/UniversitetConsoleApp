@@ -1,14 +1,15 @@
 using System;
 
-
 namespace UniversitetConsoleApp.Models
 {
-     public class Loan
+    public class Loan
     {
-        public User Borrower {get; set; }
-        public LibraryItem Item { get; set; }
-        public DateTime LoanDate { get; set; }
-        public DateTime? ReturnDate { get; set; }
+        public User Borrower { get; private set; }
+        public LibraryItem Item { get; private set; }
+        public DateTime LoanDate { get; private set; }
+        public DateTime? ReturnDate { get; private set; }
+
+        public bool IsActive => ReturnDate == null;
 
         public Loan(User borrower, LibraryItem item)
         {
@@ -16,7 +17,15 @@ namespace UniversitetConsoleApp.Models
             Item = item;
             LoanDate = DateTime.Now;
         }
-        
+
+        public void ReturnItem()
+        {
+            if (ReturnDate != null)
+                return;
+
+            ReturnDate = DateTime.Now;
+            Item.ReturnCopy();
+        }
     }
 }
         

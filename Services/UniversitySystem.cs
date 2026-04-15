@@ -7,6 +7,7 @@ namespace UniversitetConsoleApp.Services
 {
     public class UniversitySystem
     {
+        public List<User> Users { get; set; }
         public List<Student> Students { get; set; }
         public List<Employee> Employees { get; set; }
         public List<Course> Courses { get; set; }
@@ -15,6 +16,7 @@ namespace UniversitetConsoleApp.Services
 
         public UniversitySystem()
         {
+            Users = new List<User>();
             Students = new List<Student>();
             Employees = new List<Employee>();
             Courses = new List<Course>();
@@ -22,217 +24,225 @@ namespace UniversitetConsoleApp.Services
             Loans = new List<Loan>();
         }
 
-        public void CreateCourse()
+        public string RegisterStudent(int studentId, string name, string email, string username, string password)
         {
-            Console.Write("Course code: ");
-            string code = Console.ReadLine() ?? "";
+            if (Users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+                return "Brukernavnet finnes allerede.";
 
-            Console.Write("Course name: ");
-            string name = Console.ReadLine() ?? "";
+            Student student = new Student(studentId, name, email, username, password);
+            Students.Add(student);
+            Users.Add(student);
 
-            Console.Write("Credits: ");
-            int credits = int.Parse(Console.ReadLine() ?? "0");
+            return "Student registrert.";
+        }
 
-            Console.Write("Max students: ");
-            int maxStudents = int.Parse(Console.ReadLine() ?? "0");
+        public string RegisterTeacher(int employeeId, string name, string email, string username, string password)
+        {
+            if (Users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+                return "Brukernavnet finnes allerede.";
 
-            Course course = new Course(code, name, credits, maxStudents);
+            Teacher teacher = new Teacher(employeeId, name, email, username, password);
+            Employees.Add(teacher);
+            Users.Add(teacher);
+
+            return "Faglærer registrert.";
+        }
+
+        public string RegisterLibrarian(int employeeId, string name, string email, string username, string password)
+        {
+            if (Users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+                return "Brukernavnet finnes allerede.";
+
+            Librarian librarian = new Librarian(employeeId, name, email, username, password);
+            Employees.Add(librarian);
+            Users.Add(librarian);
+
+            return "Bibliotekansatt registrert.";
+        }
+
+        public User? Login(string username, string password)
+        {
+            User? user = Users.FirstOrDefault(u =>
+                u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+
+            if (user == null)
+                return null;
+
+            if (!user.CheckPassword(password))
+                return null;
+
+            return user;
+        }
+
+        public string CreateCourse(string code, string name, int credits, int maxStudents, Teacher teacher)
+        {
+            bool exists = Courses.Any(c =>
+                c.Code.Equals(code, StringComparison.OrdinalIgnoreCase) ||
+                c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (exists)
+                return "Kurs med samme kode eller navn finnes allerede.";
+
+            Course course = new Course(code, name, credits, maxStudents, teacher);
             Courses.Add(course);
 
-            Console.WriteLine("Course created successfully!");
+            return "Kurs opprettet.";
         }
 
-        public void EnrollStudentInCourse()
+        public List<Course> SearchCourses(string searchTerm)
         {
-            Console.Write("Student ID: ");
-            int studentId = int.Parse(Console.ReadLine() ?? "0");
-
-            Console.Write("Course code: ");
-            string code = Console.ReadLine() ?? "";
-
-            Student student = Students.FirstOrDefault(s => s.StudentId == studentId);
-            Course course = Courses.FirstOrDefault(c => c.Code == code);
-
-            if (student != null && course != null)
-            {
-                if (course.Students.Count < course.MaxStudents)
-                {
-                    course.Students.Add(student);
-                    student.EnrolledCourses.Add(course);
-
-                    Console.WriteLine("Student enrolled successfully in course!");
-                }
-                else
-                {
-                    Console.WriteLine("Unfortunately, the course is full.");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Student or course not found.");
-            }
+            return Courses.Where(c =>
+                c.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                c.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
-        public void PrintCoursesAndParticipants()
+        public string EnrollStudentInCourse(Student student, string courseCode)
         {
-            if (Courses.Count == 0)
-            {
-                Console.WriteLine("No courses available.");
-                return;
-            }
+            Course? course = Courses.FirstOrDefault(c =>
+                c.Code.Equals(courseCode, StringComparison.OrdinalIgnoreCase));
 
-            foreach (var course in Courses)
-            {
-                Console.WriteLine($"\nCourse: {course.Code} - {course.Name}");
-                Console.WriteLine($"Credits: {course.Credits}");
-                Console.WriteLine($"Students: {course.Students.Count}/{course.MaxStudents}");
+            if (course == null)
+                return "Kurs ikke funnet.";
 
-                if (course.Students.Count == 0)
-                {
-                    Console.WriteLine("No participants.");
-                }
-                else
-                {
-                    foreach (var student in course.Students)
-                    {
-                        Console.WriteLine($"- {student.Name} (ID: {student.StudentId})");
-                    }
-                }
-            }
+            bool success = course.AddStudent(student);
+
+            if (!success)
+                return "Studenten kan ikke meldes på kurset. Enten er kurset fullt eller studenten er allerede meldt på.";
+
+            return "Student meldt på kurs.";
         }
 
-        public void SearchCourse()
+        public string UnenrollStudentFromCourse(Student student, string courseCode)
         {
-            Console.Write("Search by course code or name: ");
-            string search = Console.ReadLine() ?? "";
+            Course? course = Courses.FirstOrDefault(c =>
+                c.Code.Equals(courseCode, StringComparison.OrdinalIgnoreCase));
 
-            var results = Courses.Where(c =>
-                c.Code.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                c.Name.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (course == null)
+                return "Kurs ikke funnet.";
 
-            if (results.Count == 0)
-            {
-                Console.WriteLine("No courses found.");
-                return;
-            }
+            bool success = course.RemoveStudent(student);
 
-            foreach (var course in results)
-            {
-                Console.WriteLine($"{course.Code} - {course.Name}");
-            }
+            if (!success)
+                return "Studenten er ikke meldt på dette kurset.";
+
+            return "Student meldt av kurs.";
         }
 
-        public void RegisterBook()
+        public string RegisterBook(int id, string title, string author, int year, int copies)
         {
-            Console.Write("Book ID: ");
-            int id = int.Parse(Console.ReadLine() ?? "0");
+            if (LibraryItems.Any(b => b.Id == id))
+                return "En bok med samme ID finnes allerede.";
 
-            Console.Write("Title: ");
-            string title = Console.ReadLine() ?? "";
+            LibraryItem item = new LibraryItem(id, title, author, year, copies);
+            LibraryItems.Add(item);
 
-            Console.Write("Author: ");
-            string author = Console.ReadLine() ?? "";
-
-            Console.Write("Year: ");
-            int year = int.Parse(Console.ReadLine() ?? "0");
-
-            Console.Write("Number of copies: ");
-            int copies = int.Parse(Console.ReadLine() ?? "0");
-
-            LibraryItems.Add(new LibraryItem(id, title, author, year, copies));
-
-            Console.WriteLine("Book registered successfully.");
+            return "Bok registrert.";
         }
 
-        public void SearchBook()
+        public List<LibraryItem> SearchBooks(string searchTerm)
         {
-            Console.Write("Search book title: ");
-            string search = Console.ReadLine() ?? "";
-
-            var results = LibraryItems.Where(b =>
-                b.Title.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (results.Count == 0)
-            {
-                Console.WriteLine("No books found.");
-                return;
-            }
-
-            foreach (var item in results)
-            {
-                Console.WriteLine($"{item.Id} - {item.Title} by {item.Author} | Available: {item.AvailableCopies}");
-            }
+            return LibraryItems.Where(b =>
+                b.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                b.Author.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
-        public void LoanBook()
+        public string LoanBook(User user, int bookId)
         {
-            Console.Write("Borrower type (1 = Student, 2 = Employee): ");
-            string type = Console.ReadLine() ?? "";
+            if (user.Role != UserRole.Student && user.Role != UserRole.Teacher)
+                return "Denne brukeren kan ikke låne bøker.";
 
-            User borrower = null;
-
-            if (type == "1")
-            {
-                Console.Write("Student ID: ");
-                int studentId = int.Parse(Console.ReadLine() ?? "0");
-                borrower = Students.FirstOrDefault(s => s.StudentId == studentId);
-            }
-            else if (type == "2")
-            {
-                Console.Write("Employee ID: ");
-                int employeeId = int.Parse(Console.ReadLine() ?? "0");
-                borrower = Employees.FirstOrDefault(e => e.EmployeeId == employeeId);
-            }
-
-            if (borrower == null)
-            {
-                Console.WriteLine("Borrower not found.");
-                return;
-            }
-
-            Console.Write("Book ID: ");
-            int bookId = int.Parse(Console.ReadLine() ?? "0");
-
-            LibraryItem item = LibraryItems.FirstOrDefault(b => b.Id == bookId);
+            LibraryItem? item = LibraryItems.FirstOrDefault(b => b.Id == bookId);
 
             if (item == null)
-            {
-                Console.WriteLine("Book not found.");
-                return;
-            }
+                return "Bok ikke funnet.";
 
-            if (item.AvailableCopies <= 0)
-            {
-                Console.WriteLine("No copies available.");
-                return;
-            }
+            if (!item.LoanOut())
+                return "Ingen tilgjengelige eksemplarer.";
 
-            item.AvailableCopies--;
-            Loans.Add(new Loan(borrower, item));
+            Loan loan = new Loan(user, item);
+            Loans.Add(loan);
 
-            Console.WriteLine("Book loaned successfully.");
+            return "Bok lånt ut.";
         }
 
-        public void ReturnBook()
+        public string ReturnBook(User user, int bookId)
         {
-            Console.Write("Book ID: ");
-            int bookId = int.Parse(Console.ReadLine() ?? "0");
-
-            Loan activeLoan = Loans.FirstOrDefault(l => l.Item.Id == bookId && l.ReturnDate == null);
+            Loan? activeLoan = Loans.FirstOrDefault(l =>
+                l.Borrower == user &&
+                l.Item.Id == bookId &&
+                l.IsActive);
 
             if (activeLoan == null)
-            {
-                Console.WriteLine("No active loan found for this book.");
-                return;
-            }
+                return "Fant ikke aktivt lån.";
 
-            activeLoan.ReturnDate = DateTime.Now;
-            activeLoan.Item.AvailableCopies++;
+            activeLoan.ReturnItem();
+            return "Bok returnert.";
+        }
 
-            Console.WriteLine("Book returned successfully.");
+        public List<Loan> GetActiveLoans()
+        {
+            return Loans.Where(l => l.IsActive).ToList();
+        }
+
+        public List<Loan> GetLoanHistory()
+        {
+            return Loans;
+        }
+
+        public string AddCurriculumToCourse(Teacher teacher, string courseCode, int bookId)
+        {
+            Course? course = Courses.FirstOrDefault(c =>
+                c.Code.Equals(courseCode, StringComparison.OrdinalIgnoreCase));
+
+            if (course == null)
+                return "Kurs ikke funnet.";
+
+            if (course.Teacher.EmployeeId != teacher.EmployeeId)
+                return "Du underviser ikke dette kurset.";
+
+            LibraryItem? book = LibraryItems.FirstOrDefault(b => b.Id == bookId);
+
+            if (book == null)
+                return "Bok ikke funnet.";
+
+            course.AddCurriculumBook(book);
+            return "Pensum lagt til.";
+        }
+
+        public string SetGrade(Teacher teacher, string courseCode, int studentId, string grade)
+        {
+            Course? course = Courses.FirstOrDefault(c =>
+                c.Code.Equals(courseCode, StringComparison.OrdinalIgnoreCase));
+
+            if (course == null)
+                return "Kurs ikke funnet.";
+
+            if (course.Teacher.EmployeeId != teacher.EmployeeId)
+                return "Du underviser ikke dette kurset.";
+
+            Student? student = course.Students.FirstOrDefault(s => s.StudentId == studentId);
+
+            if (student == null)
+                return "Studenten finnes ikke i kurset.";
+
+            student.SetGrade(course.Code, grade);
+            return "Karakter satt.";
+        }
+
+        public List<Course> GetCoursesForStudent(Student student)
+        {
+            return student.EnrolledCourses;
         }
     }
-}
+} 
+        
+        
+            
+        
+    
+
     
 
 
